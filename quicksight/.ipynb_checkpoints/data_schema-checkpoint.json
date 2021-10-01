@@ -1,0 +1,47 @@
+{
+  "inputContentType": "CSV",
+  "outputContentType": "CSV",
+  "input": [
+    {
+      "name": "HUFL",
+      "type": "DECIMAL"
+    },
+    {
+      "name": "HULL",
+      "type": "DECIMAL"
+    },
+    {
+      "name": "MUFL",
+      "type": "DECIMAL"
+    },
+    {
+      "name": "MULL",
+      "type": "DECIMAL"
+    },
+    {
+      "name": "LUFL",
+      "type": "DECIMAL"
+    },
+    {
+      "name": "LULL",
+      "type": "DECIMAL"
+    },
+    {
+      "name": "OT",
+      "type": "DECIMAL"
+    }
+],
+  "output": [
+    {
+      "name": "Predicted",
+      "type": "DECIMAL"
+    }
+  ],
+  "description": "description",
+  "version": "v1",
+  "instanceCount": 1,
+  "instanceTypes": [
+    "ml.c4.xlarge"
+  ],
+  "defaultInstanceType": "ml.c4.xlarge"
+}
