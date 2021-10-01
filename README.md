@@ -1,0 +1,1 @@
+# sm-informer-mlops-quicksight
