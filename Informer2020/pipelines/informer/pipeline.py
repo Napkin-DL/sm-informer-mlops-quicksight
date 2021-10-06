@@ -268,14 +268,13 @@ def get_pipeline(
 
             'num_workers' : 0,
             'itr' : 1,
-            'train_epochs' : 20,  ## Training epochs
+            'train_epochs' : 1,  ## Training epochs
             'patience' : 3,
             'des' : 'exp',
             'use_multi_gpu' : True
         }
 
     experiment_name = 'informer-poc-exp1'
-    # instance_type = 'ml.p3.16xlarge'  # 'ml.p3.16xlarge', 'ml.p3dn.24xlarge', 'ml.p4d.24xlarge', 'local_gpu'
     instance_type = train_instance_param.default_value
 #     instance_count = 1
     do_spot_training = True
