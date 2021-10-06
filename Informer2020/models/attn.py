@@ -46,6 +46,10 @@ class ProbAttention(nn.Module):
 
     def _prob_QK(self, Q, K, sample_k, n_top): # n_top: c*ln(L_q)
         # Q [B, H, L, D]
+        print(f"Q : {Q.shape}")
+        print(f"K : {K.shape}")
+        print(f"sample_k : {sample_k}")
+        print(f"n_top : {n_top}")
         B, H, L_K, E = K.shape
         _, _, L_Q, _ = Q.shape
 
