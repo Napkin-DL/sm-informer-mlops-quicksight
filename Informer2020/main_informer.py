@@ -79,9 +79,6 @@ def check_sagemaker(args):
     if os.environ.get('SM_MODEL_DIR') is not None:
         args.root_path = os.path.join(os.environ['SM_CHANNEL_TRAINING'], args.root_path)
         args.checkpoints = os.environ['SM_MODEL_DIR']
-#         args.output_path = os.environ['SM_OUTPUT_DATA_DIR']
-#         args.output_path = os.path.join(args.output_path, "output")
-#         args.num_gpus = os.environ['SM_NUM_GPUS']
     return args
 
 
