@@ -78,7 +78,7 @@ def check_sagemaker(args):
 
     if os.environ.get('SM_MODEL_DIR') is not None:
         args.root_path = os.path.join(os.environ['SM_CHANNEL_TRAINING'], args.root_path)
-        args.checkpoints = os.environ['SM_MODEL_DIR']
+        args.checkpoints = "/opt/ml/checkpoints"
     return args
 
 
@@ -148,7 +148,10 @@ def main(args):
         torch.cuda.empty_cache()
     
     ## copy code to model.tar.gz for predictor/inference
-    copy_tree("/opt/ml/code", os.environ['SM_MODEL_DIR'])
+    
+    if args.local_rank==0:
+        copy_tree("/opt/ml/checkpoints", os.environ['SM_MODEL_DIR'])
+        copy_tree("/opt/ml/code", os.environ['SM_MODEL_DIR'])
 if __name__ == '__main__':
     args = arg_setting()
     args = check_sagemaker(args)
