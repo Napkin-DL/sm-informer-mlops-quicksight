@@ -1,1 +1,0 @@
-{"fileLocations": [{"URIPrefixes": ["s3://sagemaker-us-west-2-322537213286/ETDataset/ETT-small/ETTh1.csv"]}], "globalUploadSettings": {"format": "CSV", "delimiter": ",", "textqualifier": "\"", "containsHeader": "true"}}

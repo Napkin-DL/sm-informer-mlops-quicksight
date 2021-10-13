@@ -172,12 +172,12 @@ def predict_fn(res, model):
     final_result.drop('index', axis=1, inplace=True)
     
 #     print(f"final_result : {final_result}")
-    final_result.to_csv("./prediciton_result.csv")
+    final_result.to_csv("./prediction_result.csv")
     
     
-    result_repo = f"s3://{default_bucket}/prediciton_result/"
-    cmd = ["aws", "s3", "cp", "prediciton_result.csv", result_repo]
-    print(f"Syncing files from prediciton_result.csv to {result_repo}")
+    result_repo = f"s3://{default_bucket}/prediction_result/"
+    cmd = ["aws", "s3", "cp", "prediction_result.csv", result_repo]
+    print(f"Syncing files from prediction_result.csv to {result_repo}")
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()  
     
