@@ -12,9 +12,7 @@
 # language governing permissions and limitations under the License.
 """Feature engineers the custom env"""
 
-import os
-
-    
+import os  
 import tarfile
 
 
@@ -24,17 +22,12 @@ if __name__ == "__main__":
 #     parser.add_argument("--code-dir", type=str, required=True)
 #     args = parser.parse_args()
     
-    print(f"Uncompress a tar file")
-    
+    print(f"Uncompress a tar file")   
     base_dir = "/opt/ml/processing"
     
-        
     print(f"result  : {os.listdir(base_dir)}")
     
-    import tarfile
-
     fname = base_dir + "/model/model.tar.gz"
-    
     result_path = base_dir + "/result"
     
     if not os.path.exists(result_path):

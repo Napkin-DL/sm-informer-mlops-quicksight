@@ -100,7 +100,9 @@ def main(args):
 #         args.devices = '0,1,2,3,4,5,6,7'
 #         args.gpu = 0
     else:
+        print("No GPU")
         args.local_rank = 0
+        args.rank = 0
         
         
     data_parser = {
@@ -150,11 +152,11 @@ def main(args):
     
     ## copy code to model.tar.gz for predictor/inference
     
-    if args.local_rank==0:
+    if args.rank==0:
         copy_tree(f"/opt/ml/checkpoints/{setting}", os.path.join(os.environ['SM_MODEL_DIR'],setting))
         copy_tree("/opt/ml/checkpoints/results", os.path.join(os.environ['SM_MODEL_DIR'],"results"))
         shutil.copyfile("/opt/ml/checkpoints/test_report.json", os.environ['SM_MODEL_DIR'] + "/test_report.json")
-        copy_tree("/opt/ml/code", os.environ['SM_MODEL_DIR'])
+#         copy_tree("/opt/ml/code", os.environ['SM_MODEL_DIR'])
 if __name__ == '__main__':
     args = arg_setting()
     args = check_sagemaker(args)
