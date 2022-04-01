@@ -20,21 +20,6 @@ import subprocess
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
-def dir_info(path):
-    for (root, dirs, files) in os.walk(path):
-        print(f"root : {root}, dir : {dirs}, files : {files}")
-
-
-def input_fn(data_dir, input_content_type):
-    res = dir_info(data_dir)
-    print(f"********** res_input_fn : {res}")
-    f = open("predict_data.txt", 'w')
-    f.write(data_dir)
-    f.close()
-
-    res = None
-    return res
-    
 
 def model_fn(model_dir):
     global args
@@ -90,6 +75,21 @@ def model_fn(model_dir):
     model = model.to(device)
     return model
 
+
+def dir_info(path):
+    for (root, dirs, files) in os.walk(path):
+        print(f"root : {root}, dir : {dirs}, files : {files}")
+
+
+def input_fn(data_dir, input_content_type):
+    res = dir_info(data_dir)
+    print(f"********** res_input_fn : {res}")
+    f = open("predict_data.txt", 'w')
+    f.write(data_dir)
+    f.close()
+
+    res = None
+    return res
 
 # Perform prediction on the deserialized object, with the loaded model
 def predict_fn(res, model):

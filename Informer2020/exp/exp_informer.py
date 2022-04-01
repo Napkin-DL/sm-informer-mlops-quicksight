@@ -212,7 +212,7 @@ class Exp_Informer(Exp_Basic):
         
         
         
-        best_model_path = path+'/'+'model.pth'
+        best_model_path = path+'/'+'checkpoint.pth'
         if self.args.use_multi_gpu and self.args.use_gpu:
             sm_dist.barrier()
         self.model.load_state_dict(torch.load(best_model_path))
@@ -281,7 +281,7 @@ class Exp_Informer(Exp_Basic):
         
         if load:
             path = os.path.join(self.args.checkpoints, setting)
-            best_model_path = path+'/'+'model.pth'
+            best_model_path = path+'/'+'checkpoint.pth'
             self.model.load_state_dict(torch.load(best_model_path))
 
         self.model.eval()
