@@ -2,6 +2,7 @@ from data.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custo
 from exp.exp_basic import Exp_Basic
 from models.model import Informer, InformerStack
 
+print("****************************************")
 
 import numpy as np
 import json
@@ -19,8 +20,14 @@ import subprocess
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
+def dir_info(path):
+    for (root, dirs, files) in os.walk(path):
+        print(f"root : {root}, dir : {dirs}, files : {files}")
 
-def input_fn(data_dir, input_content_type):   
+
+def input_fn(data_dir, input_content_type):
+    res = dir_info(data_dir)
+    print(f"********** res_input_fn : {res}")
     f = open("predict_data.txt", 'w')
     f.write(data_dir)
     f.close()
@@ -29,13 +36,11 @@ def input_fn(data_dir, input_content_type):
     return res
     
 
-
-def dir_info(path):
-    for (root, dirs, files) in os.walk(path):
-        print(f"root : {root}, dir : {dirs}, files : {files}")
-
 def model_fn(model_dir):
     global args
+    
+    res = dir_info(model_dir)
+    print(f"********** res_model_dir : {res}")
 
     for (root, dirs, files) in os.walk(model_dir):
         for file in files:
@@ -74,6 +79,8 @@ def model_fn(model_dir):
             args.distil,
             args.mix,
         ).float()
+    
+    print(f" ************* model_dir : {model_dir}, args.setting : {args.setting}")
     
     with open(os.path.join(model_dir, args.setting, "checkpoint.pth"), 'rb') as f:
         model.load_state_dict(torch.load(f))
@@ -172,12 +179,12 @@ def predict_fn(res, model):
     final_result.drop('index', axis=1, inplace=True)
     
 #     print(f"final_result : {final_result}")
-    final_result.to_csv("./prediciton_result.csv")
+    final_result.to_csv("./prediction_result.csv")
     
     
-    result_repo = f"s3://{default_bucket}/prediciton_result/"
-    cmd = ["aws", "s3", "cp", "prediciton_result.csv", result_repo]
-    print(f"Syncing files from prediciton_result.csv to {result_repo}")
+    result_repo = f"s3://{default_bucket}/prediction_result/"
+    cmd = ["aws", "s3", "cp", "prediction_result.csv", result_repo]
+    print(f"Syncing files from prediction_result.csv to {result_repo}")
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()  
     
