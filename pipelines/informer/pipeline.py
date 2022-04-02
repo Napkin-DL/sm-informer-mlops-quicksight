@@ -33,6 +33,7 @@ import boto3
 import numpy as np
 import pandas as pd
 import subprocess
+import json
 
 # from tqdm import tqdm
 from time import strftime
@@ -51,7 +52,7 @@ from sagemaker.processing import (
     ProcessingOutput,
     ScriptProcessor,
 )
-from sagemaker.sklearn.processing import SKLearnProcessor
+from sagemaker.processing import FrameworkProcessor
 from sagemaker.workflow.conditions import ConditionLessThanOrEqualTo
 from sagemaker.workflow.condition_step import (
     ConditionStep,
@@ -76,7 +77,7 @@ SOURCE_DIR = 'Informer2020'
 
 
 def get_sagemaker_client(region):
-     """Gets the sagemaker client.
+    """Gets the sagemaker client.
 
         Args:
             region: the aws region to start the session
@@ -84,10 +85,10 @@ def get_sagemaker_client(region):
 
         Returns:
             `sagemaker.session.Session instance
-        """
-     boto_session = boto3.Session(region_name=region)
-     sagemaker_client = boto_session.client("sagemaker")
-     return sagemaker_client
+    """
+    boto_session = boto3.Session(region_name=region)
+    sagemaker_client = boto_session.client("sagemaker")
+    return sagemaker_client
 
 
 def get_session(region):
@@ -124,43 +125,11 @@ def get_pipeline_custom_tags(new_tags, region, sagemaker_project_arn=None):
         print(f"Error getting project tags: {e}")
     return new_tags
 
-
-def create_experiment(experiment_name):
-    try:
-        sm_experiment = Experiment.load(experiment_name)
-    except:
-        sm_experiment = Experiment.create(experiment_name=experiment_name,
-                                          tags=[
-                                              {
-                                                  'Key': 'modelname',
-                                                  'Value': 'informer'
-                                              },
-                                          ])
-
-
-def create_trial(experiment_name, set_param, i_type, i_cnt, spot):
-    create_date = strftime("%m%d-%H%M%s")
-    
-    algo = 'dp'
-    
-    spot = 's' if spot else 'd'
-    i_tag = 'test'
-    if i_type == 'ml.p3.16xlarge':
-        i_tag = 'p3'
-    elif i_type == 'ml.p3dn.24xlarge':
-        i_tag = 'p3dn'
-    elif i_type == 'ml.p4d.24xlarge':
-        i_tag = 'p4d'    
-        
-    trial = "-".join([i_tag,str(i_cnt),algo, spot])
-       
-    sm_trial = Trial.create(trial_name=f'{experiment_name}-{trial}-{create_date}',
-                            experiment_name=experiment_name)
-
-    job_name = f'{sm_trial.trial_name}'
-    return job_name
-
-
+###############################################################
+###############################################################
+### 2번 노트북 - '4. Experments 관리' 부터 복사해서 붙여넣기를 합니다. ###
+###############################################################
+###############################################################
 
 def get_pipeline(
     region,
@@ -186,46 +155,43 @@ def get_pipeline(
     if role is None:
         role = sagemaker.session.get_execution_role(sagemaker_session)
 
+    ### 4. Experiments 관리    
+    def create_experiment(experiment_name):
+        try:
+            sm_experiment = Experiment.load(experiment_name)
+        except:
+            sm_experiment = Experiment.create(experiment_name=experiment_name,
+                                              tags=[{'Key': 'modelname', 'Value': 'informer'}])
+
+
+    def create_trial(experiment_name, i_type, i_cnt, spot=False):
+        create_date = strftime("%m%d-%H%M%s")
+        algo = 'informer'
+
+        spot = 's' if spot else 'd'
+        i_type = i_type[3:9].replace('.','-')
+
+        trial = "-".join([i_type,str(i_cnt),algo, spot])
+
+        sm_trial = Trial.create(trial_name=f'{experiment_name}-{trial}-{create_date}',
+                                experiment_name=experiment_name)
+
+        job_name = f'{sm_trial.trial_name}'
+        return job_name
+
+    
+    ### 5. 실험 설정
+    code_location = f's3://{default_bucket}/poc_informer/sm_codes'
+    output_path = f's3://{default_bucket}/poc_informer/output'         
         
-    code_repo = f"s3://{default_bucket}/{SOURCE_DIR}"
-    cmd = ["aws", "s3", "sync", "--quiet", SOURCE_DIR, code_repo]
-    print(f"Syncing files from {SOURCE_DIR} to {code_repo}")
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p.wait()
-    
- 
-    train_instance_param = ParameterString(
-        name="TrainingInstance",
-#         default_value="ml.p3.16xlarge",
-        default_value='ml.c5.4xlarge'
-    )
-
-    train_count_param = ParameterInteger(
-        name="TrainingInstanceCount",
-        default_value=1
-    )
-
-    model_approval_status = ParameterString(
-        name="ModelApprovalStatus", default_value="PendingManualApproval"
-    )
-    
-    source_dir = ParameterString(
-        name="Informer2020",
-        default_value=SOURCE_DIR,
-    )
-
-
-    code_location = f's3://{default_bucket}/sm_codes'
-    output_path = f's3://{default_bucket}/poc_informer/output' 
-    checkpoint_s3_bucket = f's3://{default_bucket}/checkpoints'
-
+        
     metric_definitions = [
         {'Name': 'Epoch', 'Regex': 'Epoch: ([-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?),'},
         {'Name': 'train_loss', 'Regex': 'Train Loss: ([-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?),'},
         {'Name': 'valid_loss', 'Regex': 'Valid Loss: ([-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?),'},
         {'Name': 'test_loss', 'Regex': 'Test Loss: ([-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?),'},
-    ]
-    
+    ]        
+        
     hyperparameters = {
             'model' : 'informer', # model of experiment, options: [informer, informerstack, informerlight(TBD)]
             'data' : 'ETTh1', # data
@@ -272,49 +238,101 @@ def get_pipeline(
             'patience' : 3,
             'des' : 'exp',
             'use_multi_gpu' : True
-        }
-
-    experiment_name = 'informer-poc-exp1'
-    instance_type = train_instance_param.default_value
-#     instance_count = 1
+        }        
+     
+    experiment_name = 'informer-poc-exp1'                                                          ### <== 1. Experiments 이름 수정
+    distribution = None
     do_spot_training = True
     max_wait = None
-    max_run = 3*60*60
+    max_run = 1*30*60
+        
+    instance_type="ml.m5.xlarge"                                                                   
+    instance_count=1        
     
+    
+    ### 6. Pipeline parameters, checkpoints와 데이터 위치 설정
+    #### 6-1. Pipeline parameters
+    train_instance_param = ParameterString(
+        name="TrainingInstance",
+        default_value="ml.c5.4xlarge",                                                             ### <== 2. Instance 타입, 개수 수정
+    )
+
+    train_count_param = ParameterInteger(
+        name="TrainingInstanceCount",
+        default_value=1
+    )
+
+    model_approval_status = ParameterString(
+        name="ModelApprovalStatus", default_value="PendingManualApproval"
+    )
+    
+    #### 6-2. checkpoints와 데이터 위치 설정
     image_uri = None
-    train_job_name = 'sagemaker'
-    
-    prefix = 'ETDataset'
-
-
-    s3_data_path = f's3://{default_bucket}/{prefix}'
-
-
-    train_job_name = 'informer-dist'
-    distribution = {}
-
-    if instance_type in ['ml.p3.16xlarge', 'ml.p3dn.24xlarge', 'ml.p4d.24xlarge', 'local_gpu']:
-        distribution["smdistributed"]={ 
-                            "dataparallel": {
-                                "enabled": True
-                            }
-                    }
-    else:
-        distribution = None
+    train_job_name = 'informer'
 
     if do_spot_training:
         max_wait = max_run
-    
 
-    # all input configurations, parameters, and metrics specified in estimator 
-    # definition are automatically tracked
+    print("train_job_name : {} \ntrain_instance_type : {} \ntrain_instance_count : {} \nimage_uri : {} \ndistribution : {}".format(train_job_name, train_instance_param.default_value, train_count_param.default_value, image_uri, distribution))    
+
+    
+    prefix = 'ETDataset'
+    inputs = f's3://{default_bucket}/dataset/{prefix}'
+
+    source_dir = 'Informer2020'                                                                    ### <== 3. git repository내의 소스 코드 위치 
+    checkpoint_s3_uri = f's3://{default_bucket}/poc_informer/checkpoints'      
+    
+    
+    #### 6-3. Git 설정 (Secret Manager 활용)
+    def get_secret(secret_name):
+        secret = {}
+        # Create a Secrets Manager client
+        session = boto3.session.Session()
+        client = session.client(
+            service_name='secretsmanager'
+        )
+
+        # In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
+        # See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        # We rethrow the exception by default.
+
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            secret = json.loads(secret)
+        else:
+            print("secret is not defined. Checking the Secrets Manager")
+
+        return secret        
+        
+    ### CodeCommit의 Credentials이 저장된 secret_name 사용이 필요합니다.
+    sec_client = boto3.client('secretsmanager')
+    secret_name = sec_client.list_secrets(SortOrder='desc')['SecretList'][0]['ARN']               ### <== 4. git credentials이 있는 secret manage 이름 수정
+     
+    secret=get_secret(secret_name)
+
+    git_config = {'repo': 'https://git-codecommit.us-west-2.amazonaws.com/v1/repos/informer2020', ### <== 5. git repository 위치 수정
+                  'branch': 'main',
+                  'username': secret['username'],
+                  'password': secret['password']}
+        
+        
+    ### 7. 학습을 위한 Estimator 선언
+    create_experiment(experiment_name)
+    job_name = create_trial(experiment_name, instance_type, instance_count, spot=do_spot_training)
+
+
     estimator = PyTorch(
         entry_point='main_informer.py',
         source_dir=source_dir,
+        git_config=git_config,
         role=role,
         sagemaker_session=sagemaker_session,
-        framework_version='1.8.1',
-        py_version='py36',
+        framework_version='1.10',
+        py_version='py38',
         instance_count=train_count_param,    ## Parameter 값으로 변경
         instance_type=train_instance_param,  ## Parameter 값으로 변경
         volume_size=256,
@@ -324,66 +342,83 @@ def get_pipeline(
         distribution=distribution,
         metric_definitions=metric_definitions,
         max_run=max_run,
-        checkpoint_s3_uri=checkpoint_s3_bucket,
+        checkpoint_s3_uri=checkpoint_s3_uri,
         use_spot_instances=do_spot_training,  # spot instance 활용
         max_wait=max_wait,
-        base_job_name=f"informer-train",
+        base_job_name=f"training-{job_name}",
+        disable_profiler=True,
+        debugger_hook_config=False,
     )
     
-    cache_config = None
     
+    ### 8. Training 단계 선언    
+    from sagemaker.workflow.steps import CacheConfig
 
-#     cache_config = CacheConfig(enable_caching=True, 
-#                                expire_after="7d")
-    
+    cache_config = CacheConfig(enable_caching=True, 
+                               expire_after="7d")        
+        
+        
     training_step = TrainingStep(
         name="InformerTrain",
         estimator=estimator,
         inputs={
             "training": sagemaker.inputs.TrainingInput(
-                s3_data=s3_data_path
+                s3_data=inputs
             )
         },
         cache_config=cache_config
-    )
-
-    sklearn_processor = SKLearnProcessor(
-        framework_version="0.23-1",
-        instance_type="ml.c4.xlarge",
-        instance_count=1,
-        base_job_name=f"GeneratingReport",  # choose any name
-        sagemaker_session=sagemaker_session,
-        role=role,
-    )
-
+    )        
+        
     
+    ### 9. Evaluation 단계 - output에서 압축풀어 test_report.json 가져오기
+    framework_processor = FrameworkProcessor(
+        PyTorch,
+        framework_version="1.10",
+        py_version='py38',
+        role=role,
+        instance_count=1,
+        instance_type="ml.c4.xlarge",
+        code_location=code_location,
+        base_job_name=f"generatingreport-{job_name}",  # choose any name
+    )     
+        
     model_input = ProcessingInput(
-                            source=training_step.properties.ModelArtifacts.S3ModelArtifacts,
-                            destination="/opt/ml/processing/model",
-                        )    
-
-
+        source=training_step.properties.ModelArtifacts.S3ModelArtifacts,
+        destination="/opt/ml/processing/model",
+    )      
+        
     test_report = PropertyFile(
         name="TestReport",
         output_name="result",
         path="test_report.json",
     )
-
-    postprocessing_step = ProcessingStep(
-        name="PostProcessingforInformer",  # choose any name
-        processor=sklearn_processor,
+        
+    run_args = framework_processor.get_run_args(
+        code="postprocess.py",
+        source_dir="Informer2020",
+        git_config=git_config,
         inputs=[model_input],
         outputs=[
             ProcessingOutput(output_name="result", source="/opt/ml/processing/result")
         ],
-        code=os.path.join(source_dir, "postprocess.py"),
+        job_name=f"process-step-{job_name}"
+    )        
+        
+
+    postprocessing_step = ProcessingStep(
+        name="PostProcessingforInformer",  # choose any name
+        processor=framework_processor,
+        inputs=run_args.inputs,
+        outputs=run_args.outputs,
+        code=run_args.code,
         property_files=[test_report],
         cache_config=cache_config
     )
+        
 
-#     model_package_group_name = "ts-prediction-informer"
-
-    # Register model step that will be conditionally executed
+    ### 10. Model 등록 단계
+    model_package_group_name = 'mlops-test-informer-p-dkvarxpz6dj8'                                      ### <== 6. model package group 이름 수정
+    
     model_metrics = ModelMetrics(
         model_statistics=MetricsSource(
             s3_uri="{}/test_report.json".format(
@@ -391,9 +426,8 @@ def get_pipeline(
             ),
             content_type="application/json",
         )
-    )    
-
-
+    )
+    
     register_step = RegisterModel(
         name="InformerRegisterModel",
         estimator=estimator,
@@ -405,10 +439,10 @@ def get_pipeline(
         model_package_group_name=model_package_group_name,
         approval_status=model_approval_status,
         model_metrics=model_metrics,
-    )
+    )    
 
-
-    # Condition step for evaluating model quality and branching execution
+    
+    ### 11. Condition 단계
     cond_lte = ConditionLessThanOrEqualTo(  # You can change the condition here
         left=JsonGet(
             step=postprocessing_step,
@@ -423,15 +457,18 @@ def get_pipeline(
         if_steps=[register_step],
         else_steps=[],
     )
-
-
+    
+    ### 12. Pipeline 수행
     pipeline = Pipeline(
-        name=pipeline_name,
-        parameters=[train_instance_param, train_count_param, source_dir, model_approval_status],
+        name="ts-prediction-informer-pipeline",
+        parameters=[train_instance_param, train_count_param, model_approval_status],
         steps=[
             training_step,
             postprocessing_step,
             cond_step
         ],
     )
+
     return pipeline
+
+
