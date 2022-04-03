@@ -314,7 +314,7 @@ def get_pipeline(
      
     secret=get_secret(secret_name)
 
-    git_config = {'repo': 'https://git-codecommit.us-west-2.amazonaws.com/v1/repos/informer2020', ### <== 5. git repository 위치 수정
+    git_config = {'repo': f'https://git-codecommit.${region}.amazonaws.com/v1/repos/informer2020', ### <== 5. git repository 위치 수정
                   'branch': 'main',
                   'username': secret['username'],
                   'password': secret['password']}
@@ -417,7 +417,7 @@ def get_pipeline(
         
 
     ### 10. Model 등록 단계
-    model_package_group_name = 'mlops-test-informer-p-dkvarxpz6dj8'                                      ### <== 6. model package group 이름 수정
+    model_package_group_name = 'mlops-test-informer-p-XXXXXX'                                           ### <== 6. model package group 이름 수정
     
     model_metrics = ModelMetrics(
         model_statistics=MetricsSource(
